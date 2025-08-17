@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hartă cu două markere și layer Satellite - OpenStreetMap + Leaflet</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, sans-serif;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    h3 {
+      text-align: center;
+      margin: 8px 0;
+      flex: 0 0 auto;
+    }
+    /* Containerul hartii, va fi resizabil vertical */
+    #map {
+      width: 100%;
+      height: 80vh; /* înălțimea inițială */
+      resize: vertical;
+      overflow: auto;
+      border: 2px solid #ccc;
+      margin: 0 12px 12px 12px;
+      box-sizing: border-box;
+      min-height: 300px;
+      max-height: 95vh;
+      cursor: ns-resize;
+    }
+    /* Optional: mic text informativ */
+    #info {
+      text-align: center;
+      font-size: 14px;
+      margin-bottom: 12px;
+      user-select: none;
+      flex: 0 0 auto;
+    }
+  </style>
+</head>
+<body>
+<h3>Hartă cu două markere - OpenStreetMap și Satellite + resize înălțime cu mouse</h3>
+<div id="map"></div>
+<div id="info">Trage marginea de jos a hărții pentru a-i modifica înălțimea</div>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '© OpenStreetMap contributors'
+  });
+  const esriSatelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    maxZoom: 19,
+    attribution: 'Tiles © Esri — Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+  });
+
+  const map = L.map('map', {
+    center: [46.88, 23.42],
+    zoom: 9,
+    layers: [osmLayer]
+  });
+
+  const baseLayers = {
+    "OpenStreetMap": osmLayer,
+    "Satellite (Esri World Imagery)": esriSatelliteLayer
+  };
+
+  L.control.layers(baseLayers).addTo(map);
+
+  // Incarcare date din API si adaugare markere
+  fetch('http://localhost:8081/api/zira/pegard/marker/get/')
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Eroare la preluarea datelor: ' + response.status);
+      }
+      return response.json();
+    })
+    .then(data => {
+      data.forEach(item => {
+        if (item.lat && item.lng) {
+          L.marker([item.lat, item.lng])
+            .addTo(map)
+            .bindPopup(item.title || "Fără titlu");
+        }
+      });
+    })
+    .catch(error => {
+      console.error('Nu s-au putut încărca datele:', error);
+      alert('Nu s-au putut încărca datele markerelor.');
+    });
+
+</script>
+</body>
+</html>
